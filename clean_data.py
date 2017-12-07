@@ -78,7 +78,7 @@ if __name__ == "__main__":
         curr_time = start_time
         for doc in curs:
             # Clean data in document
-            json_string = clean_data(doc, input_fields, output_fields)
+            json_string = clean_data(doc, db_kwargs['input_fields'], db_kwargs['output_fields'])
             # Print cleaned data to json file
             print(json_string, end = '\n', file = json_stream, flush = True)
             # Update prev_time if end of batch
