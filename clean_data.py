@@ -64,7 +64,7 @@ if __name__ == "__main__":
     file_name = db_kwargs['dbcoll']
 
     # Open database
-    client = MongoClient("mongodb://"+db_kwargs['username']+":"+db_kwargs['password']+"@"+['host']+":"+['port']+"/"+['dbname']+['auth'])
+    client = MongoClient("mongodb://"+db_kwargs['username']+":"+db_kwargs['password']+"@"+db_kwargs['host']+":"+db_kwargs['port']+"/"+db_kwargs['dbname']+db_kwargs['auth'])
     db = client[db_kwargs['dbname']]
     coll = db[db_kwargs['dbcoll']]
 
