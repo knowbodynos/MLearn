@@ -1,0 +1,13 @@
+.DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db
+old
+*.csv
+**/*.csv
+*.json
+**/*.json
+*.log
+**/*.log
+*.pyc
+**/*.pyc
