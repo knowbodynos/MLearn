@@ -82,10 +82,10 @@ if __name__ == "__main__":
             # Print cleaned data to json file
             print(json_string, end = '\n', file = json_stream, flush = True)
             # Update prev_time if end of batch
-            if count % batch_size == 0:
+            if count % db_kwargs['batch_size'] == 0:
                 prev_time = curr_time
             # Update curr_time if beginning of new batch
-            elif (count - 1) % batch_size == 0 and count != 1:
+            elif (count - 1) % db_kwargs['batch_size'] == 0 and count != 1:
                 curr_time = time()
                 count_string = "Finished writing {count} documents.".format(count = str(count))
                 time_string = "Time: t = {t} seconds, \u0394t = {dt} seconds.".format(t = str(curr_time - start_time), dt = str(curr_time - prev_time))
