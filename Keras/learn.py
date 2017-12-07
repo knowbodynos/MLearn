@@ -1,4 +1,5 @@
 import numpy as np
+import yaml
 
 from DataGenerator import DataGenerator
 
@@ -45,7 +46,7 @@ def get_json_generator(json_gen_kwargs):
         json_generator = coll.find(json_gen_kwargs['query'], json_gen_kwargs['projection'],
                                   batch_size = json_gen_kwargs['batch_size'],
                                   no_cursor_timeout = True,
-                                  allow_partial_results = True).hint(json_gen_kwargs['hint'])
+                                  allow_partial_results = True).hint(list(json_gen_kwargs['hint'].items()))
         n_inputs = json_generator.count()
 
     return n_inputs, json_generator
@@ -76,26 +77,42 @@ def build_model(input_shape):
 
     return(model)
 
-if __name__ == "__main__":
-    # Batch Size
-    batch_size = 32
-    epochs = 20
+'''
+# config_file.yml
+file_name: "<path/to/json/file>"
 
+# config_db.yml
+username: "<username>"
+password: "<password>"
+host: "<hostname>"
+port: "<port>"
+dbname: "<name of db>"
+auth: "?authMechanism=SCRAM-SHA-1"
+dbcoll: "<name of collection>"
+query: 
+  <query_field_1>: <query_value_1>
+  <query_field_2>: <query_value_2>
+            .
+            .
+            .
+projection:
+  <proj_field_1>: <proj_value_1>
+  <proj_field_2>: <proj_value_2>
+            .
+            .
+            .
+hint:
+  <hint_field>: <hint_value>
+batch_size: <batch size>
+'''
+
+if __name__ == "__main__":
     # JSON Generator keyword arguments
-    json_gen_kwargs = {'file_name': "/Users/ross/Dropbox/Research/MLearn/FACET.json"}
-    '''
-    json_gen_kwargs = {'username': "manager",
-                       'password': "toric",
-                       'host': "129.10.135.170",
-                       'port': "27017",
-                       'dbname': "MLEARN",
-                       'auth': "?authMechanism=SCRAM-SHA-1",
-                       'dbcoll': "FACET",
-                       'query': {'facetfinetriangsMARK':True},
-                       'projection': {'_id':0,'FACEINFO':1,'FACETNREGTRIANG':1},
-                       'hint': list({'facetfinetriangsMARK':1}.items()),
-                       'batch_size': epochs * batch_size}
-    '''
+    with open("/Users/ross/Dropbox/Research/MLearn/config_file.yml",'r') as stream:
+        try:
+            json_gen_kwargs = yaml.load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 
     # Obtain generator and count inputs
     n_inputs, json_generator = get_json_generator(json_gen_kwargs)
@@ -107,7 +124,7 @@ if __name__ == "__main__":
     y_field = "FACETNREGTRIANG"
 
     # DataGenerator keyword arguments
-    data_gen_kwargs = {'batch_size': batch_size,
+    data_gen_kwargs = {'batch_size': 32,
               'n_classes': None,
               'x_dtype': int,
               'y_dtype': int,
@@ -135,7 +152,7 @@ if __name__ == "__main__":
                         steps_per_epoch = len(id_partition['train'])//data_gen_kwargs['batch_size'],
                         validation_data = validation_generator,
                         validation_steps = len(id_partition['validation'])//data_gen_kwargs['batch_size'],
-                        epochs = epochs,
+                        epochs = 20,
                         verbose = 2,
                         callbacks = [pb],
                         class_weight = None,
