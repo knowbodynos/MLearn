@@ -23,7 +23,7 @@ def clean_data(doc, input_fields, output_fields):
     #faceinfo = mat2py(doc[input_fields[0]])
     #faceinfo.extend([x**2 for x in faceinfo])
     #return py2mat(faceinfo)+"\t"+str(doc[output_fields[0]])
-    return doc
+    return json.dumps(doc, separators = (',', ':'))
 
 '''
 # config_db.yml

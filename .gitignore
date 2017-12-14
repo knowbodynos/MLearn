@@ -13,3 +13,4 @@ old
 **/*.log
 *.pyc
 **/*.pyc
+*pycache*

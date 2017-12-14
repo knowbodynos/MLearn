@@ -1,18 +1,19 @@
 import numpy as np
+import json
 from glob import iglob
 
-from DataGenerator import DataGenerator
+from DataGenerator import DataGenerator, X_format, augment_features
 
 from pymongo import MongoClient
 
 from keras.models import Sequential
-from keras.layers import Dense, Lambda
+from keras.layers import Dense, Lambda, Flatten
 from keras.callbacks import Callback
 from keras import backend as K
 
 class PrintBatch(Callback):
     'Class that defines a log function for model.fit_generator callbacks.'
-    def on_batch_end(self, epoch, logs={}):
+    def on_batch_end(self, epoch, logs = {}):
         print(logs)
 
 def train_validate_test(n_inputs, test_frac = 0.2, validate_frac = 0.2):
@@ -32,68 +33,58 @@ def train_validate_test(n_inputs, test_frac = 0.2, validate_frac = 0.2):
 
     return(result)
 
-def count_inputs(file_pattern):
+def count_inputs(file_pattern, x_field):
     'Count inputs'
     n_inputs = 0
+    input_shape = []
     for file_name in iglob(file_pattern):
-            with open(file_name, 'r') as file_stream:
-                for line in file_stream:
-                    n_inputs += 1
-
-    return n_inputs
-
-def augment_features(x_val):
-    'Augment the raw data features'
-    return np.append(x_val, x_val ** 2)
-
-def augment_data(x_val, y_val):
-    'Augment the raw data'
-    return x_val, y_val
-
-def x_format(x_val):
-    'Change the format of an input value'
-    return eval(str(x_val).replace(" ","").replace("{","[").replace("}","]"))
+        with open(file_name, 'r') as file_stream:
+            for line in file_stream:
+                doc = json.loads(line.rstrip("\n").replace("'","\""))
+                X = augment_features(X_format(doc[x_field]))
+                for i in range(len(X.shape)):
+                    if i == len(input_shape):
+                        input_shape += [X.shape[i]]
+                    elif X.shape[i] > input_shape[i]:
+                        input_shape[i] = X.shape[i]
+                n_inputs += 1
+    
+    return n_inputs, tuple(input_shape)
 
 def build_model(input_shape):
     'Design model'
     model = Sequential()
 
-    model.add(Dense(units = 1000, activation = 'sigmoid', input_shape = input_shape))
+    model.add(Flatten(input_shape = input_shape))
+    model.add(Dense(units = 1000, activation = 'sigmoid'))
     model.add(Dense(units = 10, activation = 'tanh'))
     model.add(Dense(units = 100, activation = 'sigmoid'))
     model.add(Dense(units = 1, activation = 'sigmoid'))
 
     model.compile(loss = 'binary_crossentropy', optimizer = 'sgd', metrics = ['accuracy'])
 
-    return(model)
+    return model
 
 if __name__ == "__main__":
     # DataGenerator positional arguments
     file_pattern = "/Users/ross/Dropbox/Research/MLearn/*.json"
-    input_shape = (2 * 17,)
-    x_field = "FACEINFO"
-    y_field = "FACETNREGTRIANG"
+    fields = ("NFORM2SKEL", "FACETNREGTRIANG")
 
     # DataGenerator keyword arguments
     data_gen_kwargs = {'batch_size': 32,
-              'n_classes': None,
-              'x_dtype': int,
-              'y_dtype': int,
-              'x_format': x_format,
-              'y_format': lambda y: y,
-              'augment_features': augment_features,
-              'augment_data': augment_data,
-              'shuffle': True}
+                       'n_classes': None,
+                       'shuffle': True,
+                       'seed': 0}
 
-    # Count inputs
-    n_inputs = count_inputs(file_pattern)
+    # Count inputs and get max dimensions
+    n_inputs, input_shape = count_inputs(file_pattern, fields[0])
 
     # Split inputs
     id_partition = train_validate_test(n_inputs)
 
     # Initialize generators
-    training_generator = DataGenerator(file_pattern, input_shape, x_field, y_field, **data_gen_kwargs).generate(id_partition['train'])
-    validation_generator = DataGenerator(file_pattern, input_shape, x_field, y_field, **data_gen_kwargs).generate(id_partition['validation'])
+    training_generator = DataGenerator(file_pattern, input_shape, fields, **data_gen_kwargs).generate(id_partition['train'])
+    validation_generator = DataGenerator(file_pattern, input_shape, fields, **data_gen_kwargs).generate(id_partition['validation'])
 
     # Build model
     model = build_model(input_shape)
@@ -101,9 +92,9 @@ if __name__ == "__main__":
 
     # Train model on dataset
     model.fit_generator(generator = training_generator,
-                        steps_per_epoch = len(id_partition['train'])//data_gen_kwargs['batch_size'],
+                        steps_per_epoch = len(id_partition['train']) // data_gen_kwargs['batch_size'],
                         validation_data = validation_generator,
-                        validation_steps = len(id_partition['validation'])//data_gen_kwargs['batch_size'],
+                        validation_steps = len(id_partition['validation']) // data_gen_kwargs['batch_size'],
                         epochs = 20,
                         verbose = 2,
                         callbacks = [pb],
