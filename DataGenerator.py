@@ -83,13 +83,13 @@ class DataGenerator(object):
 
     def __augment_data(self, X):
         'Augment the data by adding a random transformation on the features'
-        #return features
-        return X.transpose()[np.random.permutation(X.shape[1]),:].transpose()
+        return X
+        #return X[np.random.permutation(X.shape[0]),:]
 
-def augment_features(features):
+def augment_features(X):
     'Augment the raw data features'
-    #return np.append(features, features ** 2)
-    return features
+    #return np.append(X, X ** 2)
+    return X
 
 def X_format(X):
     'Change the format of an input value'
